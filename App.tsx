@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Exam, GenerateExamParams, ViewState, User, ActivityLog, SchoolResource } from './types';
-import { generateMathExam } from './services/geminiService';
-import { storage } from './services/storage';
-import ExamGenerator from './components/ExamGenerator';
-import ExamList from './components/ExamList';
-import ExamView from './components/ExamView';
-import Login from './components/Login';
+import { generateMathExam } from './geminiService'; // حذف کلمه services
+import { storage } from './storage';             // حذف کلمه services
+import ExamGenerator from './ExamGenerator';     // حذف کلمه components
+import ExamList from './ExamList';               // حذف کلمه components
+import ExamView from './ExamView';               // حذف کلمه components
+import Login from './Login';                     // حذف کلمه components
+import AdminPanel from './AdminPanel';           // حذف کلمه components
 import AdminPanel from './components/AdminPanel';
 import { LogOut, PlusCircle, LayoutDashboard, ShieldCheck, UserCog } from 'lucide-react';
 
