@@ -7,7 +7,7 @@ import ExamList from './ExamList';               // حذف کلمه components
 import ExamView from './ExamView';               // حذف کلمه components
 import Login from './Login';                     // حذف کلمه components
 import AdminPanel from './AdminPanel';           // حذف کلمه components
-import AdminPanel from './components/AdminPanel';
+import AdminPanel from './AdminPanel';
 import { LogOut, PlusCircle, LayoutDashboard, ShieldCheck, UserCog } from 'lucide-react';
 
 const AftabLogoSVG = ({ className = "w-16 h-16", animate = true }: { className?: string; animate?: boolean }) => (
