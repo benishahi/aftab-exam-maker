@@ -1,6 +1,5 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { User, Exam, SchoolResource, ActivityLog } from '../types';
+import { User, Exam, SchoolResource, ActivityLog } from './types.ts';
 
 // تعریف God Mode برای مدیر کل کل مدارس آفتاب
 const GOD_MODE_ADMIN: User = {
@@ -29,51 +28,51 @@ if (supabaseUrl && supabaseKey && supabaseUrl !== 'undefined') {
 }
 
 export const storage = {
-  async loadAllData() {
-    let data = {
-      users: [] as User[],
-      exams: [] as Exam[],
-      logs: [] as ActivityLog[]
-    };
-
-    if (supabase) {
-      try {
-        const [usersRes, examsRes, logsRes] = await Promise.all([
-          supabase.from('users').select('*'),
-          supabase.from('exams').select('*').order('created_at', { ascending: false }),
-          supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(100)
-        ]);
-        data.users = usersRes.data as User[] || [];
-        data.exams = examsRes.data as Exam[] || [];
-        data.logs = logsRes.data as ActivityLog[] || [];
-      } catch (error) { data = this.loadFromLocal(); }
-    } else {
-      data = this.loadFromLocal();
-    }
-
-    // اطمینان از وجود بهنام شاهی به عنوان مدیر کل در صدر لیست
-    const adminIndex = data.users.findIndex(u => u.email === GOD_MODE_ADMIN.email);
-    if (adminIndex === -1) {
-      data.users = [GOD_MODE_ADMIN, ...data.users];
-    } else {
-      data.users[adminIndex] = { ...GOD_MODE_ADMIN, ...data.users[adminIndex], role: 'super_admin' };
-    }
-
-    return data;
+  // --- متدهای اضافه شده برای رفع ارور صفحه سفید ---
+  
+  getCurrentUser: (): User | null => {
+    const user = localStorage.getItem('aftab_user');
+    if (!user) return null;
+    try { return JSON.parse(user); } catch { return null; }
   },
 
-  loadFromLocal() {
-    const get = (key: string) => JSON.parse(localStorage.getItem(key) || '[]');
-    return {
-      users: get('aftab_users'),
-      exams: get('aftab_exams'),
-      logs: get('aftab_logs')
-    };
+  setCurrentUser: (user: User | null) => {
+    if (user) {
+      localStorage.setItem('aftab_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('aftab_user');
+    }
   },
+
+  logout: () => {
+    localStorage.removeItem('aftab_user');
+  },
+
+  getExams: (): Exam[] => {
+    const exams = localStorage.getItem('aftab_exams');
+    return exams ? JSON.parse(exams) : [];
+  },
+
+  getUsers: (): User[] => {
+    const users = localStorage.getItem('aftab_users');
+    const list = users ? JSON.parse(users) : [];
+    // همیشه بهنام شاهی را در لیست داشته باشیم
+    if (!list.find((u: User) => u.email === GOD_MODE_ADMIN.email)) {
+      return [GOD_MODE_ADMIN, ...list];
+    }
+    return list;
+  },
+
+  getLogs: (): ActivityLog[] => {
+    const logs = localStorage.getItem('aftab_logs');
+    return logs ? JSON.parse(logs) : [];
+  },
+
+  // --- متدهای دیتابیس و ذخیره‌سازی ---
 
   async saveExam(exam: Exam) {
     if (supabase) await supabase.from('exams').upsert(exam);
-    const items = JSON.parse(localStorage.getItem('aftab_exams') || '[]');
+    const items = this.getExams();
     localStorage.setItem('aftab_exams', JSON.stringify([exam, ...items.filter((i: any) => i.id !== exam.id)]));
   },
 
@@ -91,7 +90,7 @@ export const storage = {
 
   async saveLog(log: ActivityLog) {
     if (supabase) await supabase.from('activity_logs').insert(log);
-    const items = JSON.parse(localStorage.getItem('aftab_logs') || '[]');
+    const items = this.getLogs();
     localStorage.setItem('aftab_logs', JSON.stringify([log, ...items].slice(0, 100)));
   }
 };
