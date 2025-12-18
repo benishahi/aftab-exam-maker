@@ -1,160 +1,83 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { generateMathExam } from './geminiService'; // حذف کلمه services
-import { storage } from './storage';             // حذف کلمه services
-import ExamGenerator from './ExamGenerator';     // حذف کلمه components
-import ExamList from './ExamList';               // حذف کلمه components
-import ExamView from './ExamView';               // حذف کلمه components
-import Login from './Login';                     // حذف کلمه components
-import AdminPanel from './AdminPanel';           // حذف کلمه components
-import AdminPanel from './AdminPanel';
+// اصلاح مهم: ایمپورت ViewState به صورت مستقیم برای رفع ارور صفحه سفید
+import { ViewState } from './types.ts';
+import type { Exam, GenerateExamParams, User, ActivityLog, SchoolResource } from './types.ts';
+import { generateMathExam } from './geminiService.ts';
+import { storage } from './storage.ts';
+import ExamGenerator from './ExamGenerator.tsx';
+import ExamList from './ExamList.tsx';
+import ExamView from './ExamView.tsx';
+import Login from './Login.tsx';
+import AdminPanel from './AdminPanel.tsx';
 import { LogOut, PlusCircle, LayoutDashboard, ShieldCheck, UserCog } from 'lucide-react';
 
 const AftabLogoSVG = ({ className = "w-16 h-16", animate = true }: { className?: string; animate?: boolean }) => (
   <svg viewBox="0 -30 200 280" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <style>
-      {`
-        @keyframes rotateRays { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes sunPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
-        .rays-group { transform-origin: 100px 80px; animation: ${animate ? 'rotateRays 60s linear infinite' : 'none'}; }
-        .sun-core { transform-origin: 100px 80px; animation: ${animate ? 'sunPulse 4s ease-in-out infinite' : 'none'}; }
-        .nastaliq-text { font-family: 'IranNastaliq', 'Vazirmatn', cursive; }
-      `}
-    </style>
-    <g className="rays-group">
-      <g stroke="#F59E0B" strokeWidth="1.5">
-        {[...Array(36)].map((_, i) => (
-          <line key={i} x1="100" y1="80" x2={100 + 95 * Math.cos((i * 10 * Math.PI) / 180)} y2={80 + 95 * Math.sin((i * 10 * Math.PI) / 180)} opacity="0.4" />
-        ))}
-      </g>
-    </g>
-    <circle cx="100" cy="80" r="35" fill="#F59E0B" className="sun-core" />
-    <text x="50%" y="225" textAnchor="middle" fill="#1E293B" fontSize="72" fontWeight="normal" className="nastaliq-text">مدارس آفتاب</text>
+    <circle cx="100" cy="80" r="45" fill="url(#sunGradient)" className="sun-core" />
+    <defs>
+      <linearGradient id="sunGradient" x1="100" y1="35" x2="100" y2="125" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FCD34D" />
+        <stop offset="100%" stopColor="#F59E0B" />
+      </linearGradient>
+    </defs>
+    <path d="M100 135 C100 135, 60 180, 100 220 C140 180, 100 135, 100 135" fill="#F59E0B" fillOpacity="0.2" />
   </svg>
 );
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(storage.getCurrentUser());
   const [viewState, setViewState] = useState<ViewState>(ViewState.DASHBOARD);
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [exams, setExams] = useState<Exam[]>(storage.getExams());
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string>('');
 
+  // این بخش مربوط به مدیریت کاربران و لاگ‌ها است
+  const users = storage.getUsers();
+  const logs = storage.getLogs();
+
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
   const isSuperAdmin = currentUser?.role === 'super_admin';
-  const isAdmin = currentUser?.role === 'admin' || isSuperAdmin;
 
-  useEffect(() => {
-    const initData = async () => {
-      try {
-        const data = await storage.loadAllData();
-        setExams(data.exams || []);
-        setUsers(data.users || []);
-        setLogs(data.logs || []);
-      } catch (e) {
-        console.error("Initial data load failed:", e);
-      }
-    };
-    initData();
-  }, []);
-
-  const filteredExams = useMemo(() => {
-    if (!currentUser) return [];
-    if (isSuperAdmin) return exams;
-    return exams.filter(e => e.schoolName === currentUser.schoolName);
-  }, [exams, currentUser, isSuperAdmin]);
-
-  const handleLogin = (username: string, password: string) => {
-    const user = users.find(u => (u.username === username || u.email === username) && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      setLoginError(null);
-      storage.saveLog({
-        id: `log-${Date.now()}`,
-        userId: user.id,
-        userName: user.fullName,
-        schoolName: user.schoolName,
-        action: 'LOGIN',
-        details: `ورود کاربر ${user.fullName} با نقش ${user.role}`,
-        timestamp: Date.now()
-      });
-    } else {
-      setLoginError('اطلاعات کاربری نامعتبر است.');
-    }
+  const handleLogin = (u: User) => {
+    storage.setCurrentUser(u);
+    setCurrentUser(u);
+    setLoginError('');
   };
 
   const handleLogout = () => {
+    storage.logout();
     setCurrentUser(null);
     setViewState(ViewState.DASHBOARD);
   };
 
-  const handleAddUser = async (u: Omit<User, 'id'>) => {
-    if (!isAdmin) return;
-    const newUser: User = { ...u, id: `user-${Date.now()}` };
-    await storage.saveUser(newUser);
-    setUsers(prev => [...prev, newUser]);
-    storage.saveLog({
-      id: `log-${Date.now()}`,
-      userId: currentUser!.id,
-      userName: currentUser!.fullName,
-      schoolName: currentUser!.schoolName,
-      action: 'ADD_USER',
-      details: `کاربر جدید تعریف شد: ${u.fullName} (${u.role}) برای واحد ${u.schoolName}`,
-      timestamp: Date.now()
-    });
+  const handleAddUser = (u: User) => {
+    storage.saveUser(u);
   };
 
-  const handleDeleteUser = async (id: string) => {
-    if (!isAdmin) return;
-    const targetUser = users.find(u => u.id === id);
-    if (!targetUser) return;
-
-    if (!isSuperAdmin && targetUser.role === 'admin') {
-      alert('شما اجازه حذف یک مدیر دیگر را ندارید.');
-      return;
-    }
-
-    if (window.confirm(`آیا از حذف دسترسی ${targetUser.fullName} اطمینان دارید؟`)) {
-      await storage.deleteUser(id);
-      setUsers(prev => prev.filter(u => u.id !== id));
-      storage.saveLog({
-        id: `log-${Date.now()}`,
-        userId: currentUser!.id,
-        userName: currentUser!.fullName,
-        schoolName: currentUser!.schoolName,
-        action: 'DELETE_USER',
-        details: `حذف دسترسی کاربر: ${targetUser.fullName}`,
-        timestamp: Date.now()
-      });
-    }
+  const handleDeleteUser = (id: string) => {
+    storage.deleteUser(id);
   };
+
+  const filteredExams = useMemo(() => {
+    if (!currentUser) return [];
+    if (isSuperAdmin) return exams;
+    if (isAdmin) return exams.filter(e => e.schoolName === currentUser.schoolName);
+    return exams.filter(e => e.creatorId === currentUser.id);
+  }, [exams, currentUser, isAdmin, isSuperAdmin]);
 
   const handleGenerateExam = async (params: GenerateExamParams) => {
     if (!currentUser) return;
     setIsGenerating(true);
     try {
-      const examData = await generateMathExam(params);
-      const newExam: Exam = {
-        id: `exam-${Date.now()}`,
-        userId: currentUser.id,
-        authorName: currentUser.fullName,
-        schoolName: currentUser.schoolName,
-        title: examData.title || params.topic,
-        topic: params.topic,
-        gradeLevel: params.gradeLevel,
-        createdAt: Date.now(),
-        questions: (examData.questions as any) || [],
-        rawContent: examData.rawContent || ''
-      };
-
-      await storage.saveExam(newExam);
-      setExams(prev => [newExam, ...prev]);
-      setSelectedExam(newExam);
+      const exam = await generateMathExam(params, currentUser);
+      storage.saveExam(exam);
+      setExams(prev => [exam, ...prev]);
+      setSelectedExam(exam);
       setViewState(ViewState.EXAM_VIEW);
     } catch (error) {
-      alert('خطا در برقراری ارتباط با هوش مصنوعی.');
+      console.error('Error generating exam:', error);
+      alert('خطا در ارتباط با هوش مصنوعی. لطفا تنظیمات API Key را چک کنید.');
     } finally {
       setIsGenerating(false);
     }
@@ -164,7 +87,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-[Vazirmatn] text-right text-slate-800 selection:bg-amber-100" dir="rtl">
-      {/* نوار راهبری اختصاصی با تفکیک نقش‌ها */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 px-6 py-2 flex justify-between items-center shadow-sm print:hidden">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 cursor-pointer transition-transform hover:scale-95" onClick={() => setViewState(ViewState.DASHBOARD)}>
@@ -182,7 +104,6 @@ const App: React.FC = () => {
             <button onClick={() => setViewState(ViewState.GENERATOR)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${viewState === ViewState.GENERATOR ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
               <PlusCircle className="w-4 h-4 text-amber-500" /> طراحی آزمون
             </button>
-            {/* فقط مدیران این دکمه را می‌بینند */}
             {isAdmin && (
               <button onClick={() => setViewState(ViewState.ADMIN_PANEL)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${viewState === ViewState.ADMIN_PANEL ? 'bg-slate-800 text-white shadow-lg shadow-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>
                 {isSuperAdmin ? <ShieldCheck className="w-4 h-4 text-amber-400" /> : <UserCog className="w-4 h-4 text-amber-400" />}
