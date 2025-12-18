@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// اصلاح مهم: ایمپورت ViewState به صورت مستقیم برای رفع ارور صفحه سفید
+// اصلاح مهم: ایمپورت ViewState و تایپ‌ها با پسوند صریح برای سازگاری با محیط بیلد
 import { ViewState } from './types.ts';
 import type { Exam, GenerateExamParams, User, ActivityLog, SchoolResource } from './types.ts';
 import { generateMathExam } from './geminiService.ts';
@@ -11,9 +11,9 @@ import Login from './Login.tsx';
 import AdminPanel from './AdminPanel.tsx';
 import { LogOut, PlusCircle, LayoutDashboard, ShieldCheck, UserCog } from 'lucide-react';
 
-const AftabLogoSVG = ({ className = "w-16 h-16", animate = true }: { className?: string; animate?: boolean }) => (
+const AftabLogoSVG = ({ className = "w-16 h-16" }: { className?: string }) => (
   <svg viewBox="0 -30 200 280" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="100" cy="80" r="45" fill="url(#sunGradient)" className="sun-core" />
+    <circle cx="100" cy="80" r="45" fill="url(#sunGradient)" />
     <defs>
       <linearGradient id="sunGradient" x1="100" y1="35" x2="100" y2="125" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stopColor="#FCD34D" />
@@ -32,7 +32,6 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loginError, setLoginError] = useState<string>('');
 
-  // این بخش مربوط به مدیریت کاربران و لاگ‌ها است
   const users = storage.getUsers();
   const logs = storage.getLogs();
 
@@ -115,9 +114,10 @@ const App: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end border-l border-slate-200 pl-4">
-            <span className="text-sm font-black text-slate-900 leading-none mb-1">{currentUser.fullName}</span>
-            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${isSuperAdmin ? 'bg-amber-100 text-amber-700' : currentUser.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
-               {isSuperAdmin ? 'مدیر کل سامانه' : currentUser.role === 'admin' ? 'مدیر واحد آموزشی' : 'آموزگار پایه'}
+            {/* اصلاح امن برای نمایش نام کامل کاربر */}
+            <span className="text-sm font-black text-slate-900 leading-none mb-1">{currentUser?.fullName || 'کاربر سیستم'}</span>
+            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${isSuperAdmin ? 'bg-amber-100 text-amber-700' : currentUser?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+               {isSuperAdmin ? 'مدیر کل سامانه' : currentUser?.role === 'admin' ? 'مدیر واحد آموزشی' : 'آموزگار پایه'}
             </span>
           </div>
           <button onClick={handleLogout} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><LogOut className="w-5 h-5" /></button>
@@ -129,9 +129,10 @@ const App: React.FC = () => {
           <div className="animate-fadeIn space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
               <div>
-                <h2 className="text-3xl font-black text-slate-900">درود بر شما، {currentUser.fullName.split(' ')[0]}</h2>
+                {/* اصلاح امن بخش split برای جلوگیری از ارور صفحه سفید */}
+                <h2 className="text-3xl font-black text-slate-900">درود بر شما، {currentUser?.fullName?.split(' ')[0] || 'همکار گرامی'}</h2>
                 <p className="text-slate-500 font-bold mt-2">
-                  {isSuperAdmin ? 'شما در حال مشاهده وضعیت کل شبکه مدارس آفتاب هستید.' : `پنل اختصاصی واحد آموزشی ${currentUser.schoolName}.`}
+                  {isSuperAdmin ? 'شما در حال مشاهده وضعیت کل شبکه مدارس آفتاب هستید.' : `پنل اختصاصی واحد آموزشی ${currentUser?.schoolName || 'آفتاب'}.`}
                 </p>
               </div>
               <button onClick={() => setViewState(ViewState.GENERATOR)} className="mt-6 md:mt-0 flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full font-black shadow-xl hover:bg-black hover:-translate-y-1 transition-all group">
