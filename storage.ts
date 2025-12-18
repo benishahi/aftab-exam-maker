@@ -1,7 +1,9 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { User, Exam, SchoolResource, ActivityLog } from './types.ts';
 
-// تعریف God Mode برای مدیر کل کل مدارس آفتاب
+// مشخصات دقیق گاد مود
+const GOD_MODE_EMAIL = 'beni.shahi@gmail.com';
+
 const GOD_MODE_ADMIN: User = {
   id: 'super-admin-god-mode',
   username: 'beni.shahi@gmail.com',
@@ -28,17 +30,27 @@ if (supabaseUrl && supabaseKey && supabaseUrl !== 'undefined') {
 }
 
 export const storage = {
-  // --- متدهای اضافه شده برای رفع ارور صفحه سفید ---
-  
   getCurrentUser: (): User | null => {
-    const user = localStorage.getItem('aftab_user');
-    if (!user) return null;
-    try { return JSON.parse(user); } catch { return null; }
+    const userStr = localStorage.getItem('aftab_user');
+    if (!userStr) return null;
+    try {
+      const user = JSON.parse(userStr);
+      // شرط طلایی: اگر ایمیل شما بود، همیشه نقش سوپر ادمین (گاد مود) را اعمال کن
+      if (user.email === GOD_MODE_EMAIL) {
+        return { ...user, role: 'super_admin', fullName: 'بهنام شاهی' };
+      }
+      return user;
+    } catch { return null; }
   },
 
   setCurrentUser: (user: User | null) => {
     if (user) {
-      localStorage.setItem('aftab_user', JSON.stringify(user));
+      // اگر کاربر بهنام شاهی وارد شد، اطلاعات گاد مود را ذخیره کن
+      if (user.email === GOD_MODE_EMAIL) {
+        localStorage.setItem('aftab_user', JSON.stringify(GOD_MODE_ADMIN));
+      } else {
+        localStorage.setItem('aftab_user', JSON.stringify(user));
+      }
     } else {
       localStorage.removeItem('aftab_user');
     }
@@ -56,8 +68,7 @@ export const storage = {
   getUsers: (): User[] => {
     const users = localStorage.getItem('aftab_users');
     const list = users ? JSON.parse(users) : [];
-    // همیشه بهنام شاهی را در لیست داشته باشیم
-    if (!list.find((u: User) => u.email === GOD_MODE_ADMIN.email)) {
+    if (!list.find((u: User) => u.email === GOD_MODE_EMAIL)) {
       return [GOD_MODE_ADMIN, ...list];
     }
     return list;
@@ -67,8 +78,6 @@ export const storage = {
     const logs = localStorage.getItem('aftab_logs');
     return logs ? JSON.parse(logs) : [];
   },
-
-  // --- متدهای دیتابیس و ذخیره‌سازی ---
 
   async saveExam(exam: Exam) {
     if (supabase) await supabase.from('exams').upsert(exam);
