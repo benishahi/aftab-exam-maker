@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ViewState } from './types';
 import { storage } from './storage';
 import ExamGenerator from './ExamGenerator';
@@ -9,18 +9,31 @@ import AdminPanel from './AdminPanel';
 import { LogOut, PlusCircle, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 export default function App() {
+  // اضافه کردن یک استیت برای اطمینان از لود شدن اطلاعات
   const [user, setUser] = useState(storage.getCurrentUser());
   const [view, setView] = useState(ViewState.DASHBOARD);
   const [exams, setExams] = useState(storage.getExams());
   const [selected, setSelected] = useState(null);
 
+  // چک کردن لحظه‌ای کاربر برای موبایل
+  useEffect(() => {
+    const savedUser = storage.getCurrentUser();
+    if (savedUser && !user) setUser(savedUser);
+  }, []);
+
   const isBeni = useMemo(() => user?.email === 'beni.shahi@gmail.com', [user]);
 
-  if (!user) return <Login onLoginSuccess={setUser} />;
+  // اگر کاربر لاگین نکرده بود، صفحه لاگین را نشان بده
+  if (!user) {
+    return <Login onLoginSuccess={(u) => {
+      storage.saveCurrentUser(u); // اجبار به ذخیره در حافظه
+      setUser(u);
+    }} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-vazir text-right" dir="rtl">
-      <header className="bg-white border-b p-4 flex items-center justify-between shadow-sm">
+      <header className="bg-white border-b p-4 flex items-center justify-between shadow-sm sticky top-0 z-50">
         <h1 className="text-lg font-bold text-orange-600">مدارس آفتاب</h1>
         <div className="flex gap-2">
           {isBeni && (
@@ -28,8 +41,8 @@ export default function App() {
               <ShieldCheck size={18}/>
             </button>
           )}
-          <button onClick={() => setView(ViewState.CREATE_EXAM)} className="p-2 bg-orange-50 text-orange-600 rounded"><PlusCircle size={20}/></button>
-          <button onClick={() => setView(ViewState.DASHBOARD)} className="p-2 bg-gray-100 text-gray-600 rounded"><LayoutDashboard size={20}/></button>
+          <button onClick={() => setView(ViewState.CREATE_EXAM)} className={`p-2 rounded ${view === ViewState.CREATE_EXAM ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600'}`}><PlusCircle size={20}/></button>
+          <button onClick={() => setView(ViewState.DASHBOARD)} className={`p-2 rounded ${view === ViewState.DASHBOARD ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600'}`}><LayoutDashboard size={20}/></button>
           <button onClick={() => { storage.logout(); setUser(null); }} className="p-2 text-red-400"><LogOut size={20}/></button>
         </div>
       </header>
