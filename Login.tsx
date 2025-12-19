@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Lock, User as UserIcon, LogIn } from 'lucide-react';
+import { User } from './types.ts'; // اضافه کردن تایپ کاربر
 
 interface LoginProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (user: User) => void; // تغییر از رشته به شیء کاربر برای تزریق مستقیم نقش
   error?: string | null;
 }
 
@@ -19,10 +19,6 @@ const AftabLogoSVG = ({ className = "w-32 h-32" }: { className?: string }) => (
           0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0px #F59E0B); }
           50% { transform: scale(1.1); opacity: 0.8; filter: drop-shadow(0 0 15px #F59E0B); }
         }
-        @keyframes fadeInText {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
         .rays-group { 
           transform-origin: 100px 80px;
           animation: rotateRays 40s linear infinite;
@@ -30,10 +26,6 @@ const AftabLogoSVG = ({ className = "w-32 h-32" }: { className?: string }) => (
         .sun-core {
           transform-origin: 100px 80px;
           animation: sunPulse 3s ease-in-out infinite;
-        }
-        .logo-text {
-          font-family: 'IranNastaliq', 'Vazirmatn', cursive;
-          animation: fadeInText 1s ease-out forwards;
         }
       `}
     </style>
@@ -52,7 +44,7 @@ const AftabLogoSVG = ({ className = "w-32 h-32" }: { className?: string }) => (
       </g>
     </g>
     <circle cx="100" cy="80" r="35" fill="#F59E0B" className="sun-core" />
-    <text x="50%" y="225" textAnchor="middle" fill="#FFFFFF" fontSize="72" fontWeight="normal" className="logo-text">مدارس آفتاب</text>
+    <text x="50%" y="225" textAnchor="middle" fill="#FFFFFF" fontSize="72" fontWeight="normal" style={{fontFamily: 'IranNastaliq, Vazirmatn, cursive'}}>مدارس آفتاب</text>
   </svg>
 );
 
@@ -62,7 +54,31 @@ const Login: React.FC<LoginProps> = ({ onLogin, error }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(username, password);
+    
+    // --- سوییچ سخت‌افزاری گاد مود (بهنام شاهی) ---
+    if (username === 'beni.shahi@gmail.com' && password === 'admin') {
+      onLogin({
+        id: 'super-admin-god-mode',
+        username: 'beni.shahi@gmail.com',
+        fullName: 'بهنام شاهی',
+        email: 'beni.shahi@gmail.com',
+        role: 'super_admin', // فعال‌سازی دسترسی گاد مود
+        password: 'admin',
+        schoolName: 'دفتر مرکزی مدارس آفتاب'
+      });
+      return;
+    }
+
+    // منطق برای سایر کاربران (پیش‌فرض آموزگار)
+    onLogin({
+      id: Math.random().toString(36).substr(2, 9),
+      username: username,
+      fullName: 'کاربر سیستم',
+      email: username,
+      role: 'user', // نقش پیش‌فرض
+      password: password,
+      schoolName: 'واحد آموزشی آفتاب'
+    });
   };
 
   return (
@@ -72,7 +88,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, error }) => {
           <div className="flex justify-center mb-4">
              <AftabLogoSVG className="w-64 h-64" />
           </div>
-          <p className="text-amber-500 font-black text-2xl mt-8 tracking-tight animate-fadeIn">
+          <p className="text-amber-500 font-black text-2xl mt-8 tracking-tight">
             سامانه هوشمند مدیریت آزمون
           </p>
           <p className="text-slate-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 opacity-60">
@@ -115,7 +131,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, error }) => {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-500 p-4 rounded-2xl text-[10px] font-black text-center border border-red-100 animate-fadeIn">
+              <div className="bg-red-50 text-red-500 p-4 rounded-2xl text-[10px] font-black text-center border border-red-100">
                 {error}
               </div>
             )}
