@@ -31,10 +31,11 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loginError, setLoginError] = useState<string>('');
 
-  // منطق طلایی تشخیص مدیر کل (گاد مود) تحت هر شرایطی
+  // --- سوییچ سخت‌افزاری و قطعی گاد مود ---
+  // این کد حتی اگر دیتابیس خالی باشد، ایمیل شما را به عنوان مدیر کل شناسایی می‌کند
   const isBeniShahi = currentUser?.email === 'beni.shahi@gmail.com';
-  const isSuperAdmin = isBeniShahi || currentUser?.role === 'super_admin';
-  const isAdmin = isSuperAdmin || currentUser?.role === 'admin';
+  const isSuperAdmin = useMemo(() => isBeniShahi || currentUser?.role === 'super_admin', [currentUser, isBeniShahi]);
+  const isAdmin = useMemo(() => isSuperAdmin || currentUser?.role === 'admin', [isSuperAdmin, currentUser]);
 
   const users = storage.getUsers();
   const logs = storage.getLogs();
@@ -93,7 +94,7 @@ const App: React.FC = () => {
             <AftabLogoSVG className="w-24 h-24" />
             <div className="hidden lg:block -mr-4">
               <h1 className="text-5xl font-normal text-slate-800 font-nastaliq leading-none">مدارس آفتاب</h1>
-              <p className="text-[9px] text-amber-600 font-black tracking-widest uppercase opacity-70 text-left">Intelligent Network</p>
+              <p className="text-[9px] text-amber-600 font-black tracking-widest uppercase opacity-70">Intelligent Network</p>
             </div>
           </div>
           
@@ -107,7 +108,7 @@ const App: React.FC = () => {
             {isAdmin && (
               <button onClick={() => setViewState(ViewState.ADMIN_PANEL)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${viewState === ViewState.ADMIN_PANEL ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}>
                 {isSuperAdmin ? <ShieldCheck className="w-4 h-4 text-amber-400" /> : <UserCog className="w-4 h-4 text-amber-400" />}
-                {isSuperAdmin ? 'مرکز فرماندهی (گاد مود)' : 'مدیریت واحد'}
+                {isSuperAdmin ? 'مرکز فرماندهی (گاد مود)' : 'مدیریت واحد آموزشی'}
               </button>
             )}
           </div>
@@ -115,9 +116,11 @@ const App: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end border-l border-slate-200 pl-4">
-            <span className="text-sm font-black text-slate-900 leading-none mb-1">{isBeniShahi ? 'بهنام شاهی' : (currentUser?.fullName || 'کاربر سیستم')}</span>
+            <span className="text-sm font-black text-slate-900 leading-none mb-1">
+              {isBeniShahi ? 'بهنام شاهی' : (currentUser?.fullName || 'کاربر سیستم')}
+            </span>
             <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${isSuperAdmin ? 'bg-amber-100 text-amber-700' : isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
-               {isSuperAdmin ? 'مدیر کل سامانه (آفتاب)' : isAdmin ? 'مدیر واحد آموزشی' : 'آموزگار پایه'}
+               {isSuperAdmin ? 'مدیر کل سامانه آفتاب' : isAdmin ? 'مدیر واحد آموزشی' : 'آموزگار پایه'}
             </span>
           </div>
           <button onClick={handleLogout} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><LogOut className="w-5 h-5" /></button>
@@ -129,9 +132,9 @@ const App: React.FC = () => {
           <div className="animate-fadeIn space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
               <div>
-                <h2 className="text-3xl font-black text-slate-900">درود بر شما، {isBeniShahi ? 'بهنام' : (currentUser?.fullName?.split(' ')[0] || 'همکار گرامی')}</h2>
+                <h2 className="text-3xl font-black text-slate-900">درود بر شما، {isBeniShahi ? 'بهنام' : (currentUser?.fullName?.split(' ')[0] || 'همکار')}</h2>
                 <p className="text-slate-500 font-bold mt-2">
-                  {isSuperAdmin ? 'شما با دسترسی ارشد، مدیریت کل شبکه مدارس آفتاب را بر عهده دارید.' : `پنل اختصاصی واحد آموزشی ${currentUser?.schoolName || 'آفتاب'}.`}
+                  {isSuperAdmin ? 'شما در حال مدیریت کل شبکه مدارس آفتاب هستید.' : `پنل اختصاصی واحد آموزشی ${currentUser?.schoolName || 'آفتاب'}.`}
                 </p>
               </div>
               <button onClick={() => setViewState(ViewState.GENERATOR)} className="mt-6 md:mt-0 flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full font-black shadow-xl hover:bg-black hover:-translate-y-1 transition-all group">
